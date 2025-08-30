@@ -1,0 +1,190 @@
+/* Graph Modal Styles */
+.graph-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.graph-modal {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.98) 100%);
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+    0 0 30px rgba(59, 130, 246, 0.1);
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Dependency Graph Component */
+.dependency-graph-container {
+  position: relative;
+  background: white;
+  border-radius: 20px;
+}
+
+.graph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.05), rgba(99, 102, 241, 0.05));
+}
+
+.graph-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: -0.025em;
+}
+
+.close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(248, 250, 252, 0.8);
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(241, 245, 249, 1);
+  color: #334155;
+  transform: scale(1.05);
+}
+
+.close-btn:active {
+  transform: scale(0.95);
+}
+
+/* SVG Graph Styles */
+.dependency-graph-container svg {
+  display: block;
+  background: radial-gradient(ellipse at center, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* Node Info Panel */
+.node-info {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 12px 24px;
+  border-radius: 12px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(226, 232, 240, 0.5);
+  font-size: 14px;
+  color: #64748b;
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateX(-50%) translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+.node-info strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* D3 Graph Elements */
+.link {
+  transition: stroke-opacity 0.3s ease;
+}
+
+.link:hover {
+  stroke-opacity: 0.6 !important;
+  stroke-width: 3px !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .graph-modal {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  }
+  
+  .dependency-graph-container {
+    background: #1e293b;
+  }
+  
+  .graph-header {
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.1));
+    border-bottom-color: rgba(51, 65, 85, 0.5);
+  }
+  
+  .graph-header h3 {
+    color: #f1f5f9;
+  }
+  
+  .close-btn {
+    background: rgba(30, 41, 59, 0.8);
+    color: #94a3b8;
+  }
+  
+  .close-btn:hover {
+    background: rgba(51, 65, 85, 1);
+    color: #cbd5e1;
+  }
+  
+  .dependency-graph-container svg {
+    background: radial-gradient(ellipse at center, #1e293b 0%, #0f172a 100%);
+  }
+  
+  .node-info {
+    background: rgba(30, 41, 59, 0.95);
+    color: #94a3b8;
+    box-shadow: 
+      0 4px 20px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(51, 65, 85, 0.5);
+  }
+  
+  .node-info strong {
+    color: #f1f5f9;
+  }
+}
