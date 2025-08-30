@@ -1,0 +1,183 @@
+[
+  {
+    "id": "Codebox",
+    "name": "Codebox",
+    "children": [
+      {
+        "id": "Codebox/app",
+        "name": "app",
+        "children": [
+          {
+            "id": "Codebox/app/models",
+            "name": "models",
+            "children": [
+              {
+                "id": "Codebox/app/models/__init__.py",
+                "name": "__init__.py"
+              },
+              {
+                "id": "Codebox/app/models/schemas.py",
+                "name": "schemas.py"
+              }
+            ]
+          },
+          {
+            "id": "Codebox/app/routers",
+            "name": "routers",
+            "children": [
+              {
+                "id": "Codebox/app/routers/__init__.py",
+                "name": "__init__.py"
+              },
+              {
+                "id": "Codebox/app/routers/config.py",
+                "name": "config.py"
+              },
+              {
+                "id": "Codebox/app/routers/files.py",
+                "name": "files.py"
+              },
+              {
+                "id": "Codebox/app/routers/graph.py",
+                "name": "graph.py"
+              },
+              {
+                "id": "Codebox/app/routers/nodes.py",
+                "name": "nodes.py"
+              },
+              {
+                "id": "Codebox/app/routers/planning.py",
+                "name": "planning.py"
+              },
+              {
+                "id": "Codebox/app/routers/sessions.py",
+                "name": "sessions.py"
+              },
+              {
+                "id": "Codebox/app/routers/tasks.py",
+                "name": "tasks.py"
+              }
+            ]
+          },
+          {
+            "id": "Codebox/app/services",
+            "name": "services",
+            "children": [
+              {
+                "id": "Codebox/app/services/__init__.py",
+                "name": "__init__.py"
+              },
+              {
+                "id": "Codebox/app/services/graph_service.py",
+                "name": "graph_service.py"
+              },
+              {
+                "id": "Codebox/app/services/planning_service.py",
+                "name": "planning_service.py"
+              },
+              {
+                "id": "Codebox/app/services/polycli_adapters.py",
+                "name": "polycli_adapters.py"
+              }
+            ]
+          },
+          {
+            "id": "Codebox/app/sessions",
+            "name": "sessions",
+            "children": [
+              {
+                "id": "Codebox/app/sessions/__init__.py",
+                "name": "__init__.py"
+              },
+              {
+                "id": "Codebox/app/sessions/file_modify_session.py",
+                "name": "file_modify_session.py"
+              },
+              {
+                "id": "Codebox/app/sessions/planning_session.py",
+                "name": "planning_session.py"
+              }
+            ]
+          },
+          {
+            "id": "Codebox/app/storage",
+            "name": "storage",
+            "children": [
+              {
+                "id": "Codebox/app/storage/__init__.py",
+                "name": "__init__.py"
+              },
+              {
+                "id": "Codebox/app/storage/json_store.py",
+                "name": "json_store.py"
+              }
+            ]
+          },
+          {
+            "id": "Codebox/app/__init__.py",
+            "name": "__init__.py"
+          },
+          {
+            "id": "Codebox/app/config.py",
+            "name": "config.py"
+          },
+          {
+            "id": "Codebox/app/main.py",
+            "name": "main.py"
+          },
+          {
+            "id": "Codebox/app/seeds.py",
+            "name": "seeds.py"
+          }
+        ]
+      },
+      {
+        "id": "Codebox/data",
+        "name": "data",
+        "children": []
+      },
+      {
+        "id": "Codebox/tests",
+        "name": "tests",
+        "children": [
+          {
+            "id": "Codebox/tests/1.json",
+            "name": "1.json"
+          },
+          {
+            "id": "Codebox/tests/create_planning.py",
+            "name": "create_planning.py"
+          },
+          {
+            "id": "Codebox/tests/deps_scan.py",
+            "name": "deps_scan.py"
+          }
+        ]
+      },
+      {
+        "id": "Codebox/LICENSE",
+        "name": "LICENSE"
+      },
+      {
+        "id": "Codebox/models.json",
+        "name": "models.json"
+      },
+      {
+        "id": "Codebox/PolyAgent开发文档.md",
+        "name": "PolyAgent开发文档.md"
+      },
+      {
+        "id": "Codebox/README.md",
+        "name": "README.md"
+      },
+      {
+        "id": "Codebox/requirements.txt",
+        "name": "requirements.txt"
+      },
+      {
+        "id": "Codebox/tree_to_arborist.py",
+        "name": "tree_to_arborist.py"
+      }
+    ]
+  }
+]

@@ -1,0 +1,256 @@
+/* VSCode 风格布局覆盖在 Three.js 之上 */
+.app-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  background-color: #f3f3f3; /* VSCode Light */
+  color: #333333;
+  border-right: 1px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto; /* 能与 DOM 交互 */
+  z-index: 10; /* 覆盖在 three canvas 之上 */
+}
+
+.sidebar-title {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #6b6b6b;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.tree-container {
+  flex: 1;
+  overflow: hidden; /* 避免与内部虚拟列表双重滚动 */
+  display: flex; /* 让子级100%高度可用 */
+}
+
+/* VSCode 风格的 Tree 行样式 */
+.vscode-tree {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+}
+
+.vscode-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 24px;
+  font-size: 12px;
+  color: #333333;
+  user-select: none;
+}
+.vscode-row:hover {
+  background: #eaeaea;
+}
+.vscode-row[aria-selected='true'] {
+  background: #d6ebff; /* VSCode 选中浅蓝 */
+  color: #000000;
+}
+.vscode-row.drop-highlight {
+  background: #dfefff;
+}
+.vscode-row__caret {
+  width: 12px;
+  text-align: center;
+  color: #6b6b6b;
+}
+.vscode-row__icon {
+  width: 16px;
+  text-align: center;
+}
+.vscode-row__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 顶部工具栏（浅色） */
+.tree-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 32px; /* 固定高度，便于计算剩余空间 */
+  padding: 4px 8px;
+  border-bottom: 1px solid #e5e5e5;
+  background: #f7f7f7;
+  flex: 0 0 32px;
+}
+.tree-search {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid #dcdcdc;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #333333;
+}
+.btn {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid #dcdcdc;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #333333;
+  cursor: pointer;
+}
+.btn:hover {
+  background: #eeeeee;
+}
+.spacer {
+  flex: 1;
+}
+
+/* 工具栏图标按钮 */
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dcdcdc;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #333333;
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: #eeeeee;
+}
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 右键菜单（浅色） */
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+}
+.context-item {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #333333;
+  cursor: pointer;
+}
+.context-item:hover {
+  background: #f0f0f0;
+}
+.context-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: #e5e5e5;
+}
+.context-item.danger {
+  color: #b00020;
+}
+
+/* VSCode 风格模态对话框 */
+.vscode-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+.vscode-modal {
+  width: 440px;
+  max-width: calc(100vw - 40px);
+  background: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+.vscode-modal__header {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e5e5;
+  background: #f7f7f7;
+}
+.vscode-modal__body {
+  padding: 12px 14px 8px;
+}
+.vscode-modal__footer {
+  padding: 10px 14px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  border-top: 1px solid #e5e5e5;
+  background: #f7f7f7;
+}
+.vscode-label {
+  display: block;
+  font-size: 12px;
+  color: #6b6b6b;
+  margin-bottom: 6px;
+}
+.vscode-input,
+.vscode-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 13px;
+  color: #333333;
+  background: #ffffff;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  padding: 8px 10px;
+  outline: none;
+}
+.vscode-input:focus,
+.vscode-textarea:focus {
+  border-color: #0078d4;
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.15);
+}
+.vscode-input.invalid {
+  border-color: #d93025;
+  box-shadow: 0 0 0 2px rgba(217, 48, 37, 0.12);
+}
+.vscode-btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #333333;
+  cursor: pointer;
+}
+.vscode-btn:hover {
+  background: #eeeeee;
+}
+.vscode-btn.primary {
+  background: #0078d4;
+  color: #ffffff;
+  border-color: #0078d4;
+}
+.vscode-btn.primary:hover {
+  background: #0a84ff;
+  border-color: #0a84ff;
+}
+.vscode-field-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #d93025;
+}
