@@ -14,7 +14,7 @@ export function attachInteractions(opts: {
   hoverFillMat: THREE.Material
   placed: Map<string, PrismItem>
   onRequestFeature?: (hexKey: string, defaults?: { name?: string; desc?: string }) => void
-  onActivatedPrismClick?: (item: PrismItem) => void
+  onActivatedPrismClick?: (item: PrismItem, event: MouseEvent) => void
   onPrismRemove?: (item: PrismItem) => void
 }) {
   const { renderer, camera, layout, fillGroup, prismGroup, defaultFillMat, hoverFillMat, placed, onRequestFeature, onActivatedPrismClick, onPrismRemove } = opts
@@ -58,7 +58,7 @@ export function attachInteractions(opts: {
       placed.set(key, item)
     } else if (down.button === 0 && placed.has(key)) {
       const item = placed.get(key)!
-      if (item && item.isActivated && onActivatedPrismClick) onActivatedPrismClick(item)
+      if (item && item.isActivated && onActivatedPrismClick) onActivatedPrismClick(item, e as MouseEvent)
     } else if (down.button === 2) {
       const item = placed.get(key)
       if (item) {

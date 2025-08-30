@@ -13,9 +13,10 @@ type Props = {
   width?: number
   height?: number
   onRequestFeature?: (hexKey: string, defaults?: { name?: string; desc?: string }) => void
+  onActivatedPrismClick?: (item: PrismItem, event: MouseEvent) => void
 }
 
-export function useHexScene({ width, height, onRequestFeature }: Props) {
+export function useHexScene({ width, height, onRequestFeature, onActivatedPrismClick }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -63,7 +64,11 @@ export function useHexScene({ width, height, onRequestFeature }: Props) {
       hoverFillMat,
       placed,
       onRequestFeature,
-      onActivatedPrismClick: (item) => tree.showTreeForPrism(item),
+      onActivatedPrismClick: (item, event) => {
+        if (onActivatedPrismClick) {
+          onActivatedPrismClick(item, event)
+        }
+      },
       onPrismRemove: (item) => tree.disposeTreeForKey(item.key),
     })
 
