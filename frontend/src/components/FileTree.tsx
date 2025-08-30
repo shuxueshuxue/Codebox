@@ -16,29 +16,69 @@ type RowProps = {
 
 function Row({ node, innerRef, attrs }: RowProps) {
   const isDir = !!node.data.children && node.data.children.length > 0
-  const { style: baseStyle, ...rest } = attrs as any
+  const { style: baseStyle, onDragStart: arboristDragStart, draggable: arboristDraggable, ...rest } = attrs as any
+  const isDraggable = !isDir
+  const overlayRef = useRef<null | { el: HTMLDivElement; cleanup: () => void }>(null)
 
-  function makeDragPreviewCanvas(text: string, isFolder: boolean): HTMLCanvasElement {
+  function makeDragPreviewCanvas(text: string, isFolder: boolean, count: number = 1): HTMLCanvasElement {
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
-    const paddingX = 10 * dpr
+    const paddingX = 12 * dpr
     const paddingY = 6 * dpr
-    const fontSize = 14 * dpr
+    const fontSize = 13 * dpr
     const gap = 8 * dpr
-    const icon = isFolder ? '📄' : '📄' // 这里文件用同一图标，也可区分
+    const badgeGap = 10 * dpr
+    const maxWidth = 260 * dpr
+    const icon = isFolder ? '📁' : '📄'
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')!
-    ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif`
-    const textW = Math.ceil(ctx.measureText(text).width)
+
+    const fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+    ctx.font = `${fontSize}px ${fontFamily}`
+
+    function measure(str: string) {
+      return Math.ceil(ctx.measureText(str).width)
+    }
+    function ellipsis(str: string, maxTextWidth: number) {
+      if (measure(str) <= maxTextWidth) return { label: str, width: measure(str) }
+      const ell = '…'
+      let left = 0
+      let right = str.length
+      let best = ell
+      while (left <= right) {
+        const mid = (left + right) >> 1
+        const candidate = str.slice(0, Math.max(1, mid)) + ell
+        const w = measure(candidate)
+        if (w <= maxTextWidth) {
+          best = candidate
+          left = mid + 1
+        } else {
+          right = mid - 1
+        }
+      }
+      return { label: best, width: measure(best) }
+    }
+
     const iconW = Math.ceil(ctx.measureText(icon).width)
-    const height = Math.ceil(fontSize * 1.8 + paddingY)
-    const width = Math.ceil(paddingX + iconW + gap + textW + paddingX)
+    const badgeText = count > 1 ? String(count) : ''
+    const badgeFontSize = Math.round(fontSize * 0.85)
+    ctx.font = `${badgeFontSize}px ${fontFamily}`
+    const badgeTextW = badgeText ? Math.ceil(ctx.measureText(badgeText).width) : 0
+    ctx.font = `${fontSize}px ${fontFamily}`
+
+    const contentMax = maxWidth - paddingX - iconW - gap - (badgeText ? badgeGap + badgeTextW + 12 * dpr : 0) - paddingX
+    const { label, width: textW } = ellipsis(text, Math.max(40 * dpr, contentMax))
+
+    const height = Math.ceil(fontSize * 1.9 + paddingY)
+    const width = Math.ceil(paddingX + iconW + gap + textW + (badgeText ? badgeGap + badgeTextW + 12 * dpr : 0) + paddingX)
     canvas.width = width
     canvas.height = height
-    // 背景
-    const r = 8 * dpr
-    ctx.fillStyle = 'rgba(255,255,255,0.96)'
-    ctx.strokeStyle = 'rgba(0,0,0,0.12)'
-    ctx.lineWidth = 1 * dpr
+
+    // 背景 + 阴影
+    const r = 10 * dpr
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.18)'
+    ctx.shadowBlur = 10 * dpr
+    ctx.shadowOffsetY = 2 * dpr
     ctx.beginPath()
     ctx.moveTo(r, 0)
     ctx.lineTo(width - r, 0)
@@ -50,42 +90,192 @@ function Row({ node, innerRef, attrs }: RowProps) {
     ctx.lineTo(0, r)
     ctx.quadraticCurveTo(0, 0, r, 0)
     ctx.closePath()
+    const bg = ctx.createLinearGradient(0, 0, 0, height)
+    bg.addColorStop(0, 'rgba(255,255,255,0.98)')
+    bg.addColorStop(1, 'rgba(250,250,250,0.98)')
+    ctx.fillStyle = bg
     ctx.fill()
+    ctx.restore()
+
+    // 边框
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)'
+    ctx.lineWidth = 1 * dpr
     ctx.stroke()
+
     // 内容
-    ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif`
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = '#222'
     const cy = Math.floor(height / 2)
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = '#1f2328'
+    ctx.font = `${fontSize}px ${fontFamily}`
     ctx.fillText(icon, paddingX, cy)
-    ctx.fillText(text, paddingX + iconW + gap, cy)
+    ctx.fillText(label, paddingX + iconW + gap, cy)
+
+    // 多选数量角标
+    if (badgeText) {
+      const badgeH = Math.round(fontSize * 1.2)
+      const badgeR = Math.round(badgeH / 2)
+      const badgeW = Math.round(badgeTextW + 12 * dpr)
+      const bx = Math.round(paddingX + iconW + gap + textW + badgeGap)
+      const by = Math.round(cy - badgeH / 2)
+      ctx.save()
+      ctx.beginPath()
+      ctx.moveTo(bx + badgeR, by)
+      ctx.lineTo(bx + badgeW - badgeR, by)
+      ctx.quadraticCurveTo(bx + badgeW, by, bx + badgeW, by + badgeR)
+      ctx.lineTo(bx + badgeW, by + badgeH - badgeR)
+      ctx.quadraticCurveTo(bx + badgeW, by + badgeH, bx + badgeW - badgeR, by + badgeH)
+      ctx.lineTo(bx + badgeR, by + badgeH)
+      ctx.quadraticCurveTo(bx, by + badgeH, bx, by + badgeH - badgeR)
+      ctx.lineTo(bx, by + badgeR)
+      ctx.quadraticCurveTo(bx, by, bx + badgeR, by)
+      ctx.closePath()
+      ctx.fillStyle = '#2563eb'
+      ctx.fill()
+      ctx.fillStyle = '#fff'
+      ctx.font = `${badgeFontSize}px ${fontFamily}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(badgeText, bx + badgeW / 2, by + badgeH / 2)
+      ctx.restore()
+    }
+
     return canvas
   }
 
-  function startFileDrag(ev: React.DragEvent) {
-    if (isDir) {
-      ev.preventDefault()
-      return
-    }
-    const name: string = node.data.name
-    ev.dataTransfer?.setData('text/plain', name)
-    ev.dataTransfer?.setData('application/x-honeycomb-node-id', node.data.id)
-    try {
-      ev.dataTransfer!.effectAllowed = 'copy'
-    } catch {}
-    try {
-      const img = makeDragPreviewCanvas(name, isDir)
-      // 稍偏左上，光标不遮住文字
-      ev.dataTransfer!.setDragImage(img, 12, Math.floor(img.height * 0.6))
-    } catch {}
+  function createTransparentCanvas(): HTMLCanvasElement {
+    const c = document.createElement('canvas')
+    c.width = 1
+    c.height = 1
+    const ctx = c.getContext('2d')!
+    ctx.clearRect(0, 0, 1, 1)
+    return c
   }
+
+  function applyDragPreview(ev: React.DragEvent, phase: 'capture' | 'bubble' = 'capture') {
+    const name: string = node.data.name
+    try {
+      ev.dataTransfer?.setData('text/plain', name)
+    } catch {}
+    try {
+      ev.dataTransfer?.setData('application/x-honeycomb-node-id', node.data.id)
+    } catch {}
+    try {
+      if (!ev.dataTransfer) return
+      ev.dataTransfer.effectAllowed = 'copy'
+      const selectedIds = (node as any)?.tree?.selectedIds ?? (node as any)?.tree?.selection ?? null
+      let selectedCount = 1
+      if (selectedIds && typeof selectedIds === 'object') {
+        if (typeof (selectedIds as any).size === 'number') selectedCount = (selectedIds as any).size
+        else if (Array.isArray(selectedIds)) selectedCount = (selectedIds as any).length
+      }
+      const img = makeDragPreviewCanvas(name, isDir, selectedCount)
+
+      if (phase === 'capture') {
+        try {
+          overlayRef.current?.cleanup()
+        } catch {}
+        try {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2)
+          const overlay = document.createElement('div')
+          overlay.style.position = 'fixed'
+          overlay.style.left = '0'
+          overlay.style.top = '0'
+          overlay.style.pointerEvents = 'none'
+          overlay.style.zIndex = '2147483647'
+          overlay.style.willChange = 'transform'
+          const cssW = Math.round(img.width / dpr)
+          const cssH = Math.round(img.height / dpr)
+          img.style.width = cssW + 'px'
+          img.style.height = cssH + 'px'
+          overlay.appendChild(img)
+          document.body.appendChild(overlay)
+          const offX = 12
+          const offY = Math.floor(cssH * 0.6)
+          const move = (e: DragEvent) => {
+            const x = Math.round((e.clientX || 0) - offX)
+            const y = Math.round((e.clientY || 0) - offY)
+            overlay.style.transform = `translate(${x}px, ${y}px)`
+          }
+          const end = () => {
+            try {
+              document.removeEventListener('dragover', move)
+            } catch {}
+            try {
+              window.removeEventListener('drag', move, true)
+            } catch {}
+            try {
+              window.removeEventListener('dragend', end, true)
+            } catch {}
+            try {
+              window.removeEventListener('drop', end, true)
+            } catch {}
+            try {
+              overlay.remove()
+            } catch {}
+            overlayRef.current = null
+          }
+          document.addEventListener('dragover', move)
+          window.addEventListener('drag', move, true)
+          window.addEventListener('dragend', end, true)
+          window.addEventListener('drop', end, true)
+          // 初始化位置
+          try {
+            const initX = (ev as any).clientX || 0
+            const initY = (ev as any).clientY || 0
+            move({ clientX: initX, clientY: initY } as DragEvent)
+          } catch {}
+          overlayRef.current = { el: overlay, cleanup: end }
+        } catch {}
+      }
+
+      // 设置透明拖拽图隐藏系统预览，防止重影
+      try {
+        const blank = createTransparentCanvas()
+        ev.dataTransfer.setDragImage(blank, 0, 0)
+        requestAnimationFrame(() => {
+          try {
+            ev.dataTransfer!.setDragImage(blank, 0, 0)
+          } catch {}
+        })
+      } catch {}
+    } catch {}
+    // 交给 arborist 的原处理（如果它同样监听冒泡阶段，不会被替换）
+  }
+
+  function handleDragStartCapture(ev: React.DragEvent) {
+    try {
+      try {
+        if (!(node as any).isSelected && typeof (node as any).select === 'function') (node as any).select()
+      } catch {}
+      try {
+        if (!(node as any).isFocused && typeof (node as any).focus === 'function') (node as any).focus()
+      } catch {}
+    } catch {}
+    applyDragPreview(ev, 'capture')
+  }
+
+  // 冒泡阶段重新设置一次 setDragImage，以覆盖库内部可能的设置
   return (
     <div
       className="vscode-row"
       ref={innerRef}
       {...rest}
-      draggable={!isDir}
-      onDragStart={startFileDrag}
+      draggable={isDraggable}
+      onMouseDownCapture={() => {
+        try {
+          if (!(node as any).isSelected && typeof (node as any).select === 'function') (node as any).select()
+        } catch {}
+        try {
+          if (!(node as any).isFocused && typeof (node as any).focus === 'function') (node as any).focus()
+        } catch {}
+      }}
+      onDragStartCapture={handleDragStartCapture}
+      onDragStart={(e) => {
+        if (typeof arboristDragStart === 'function') arboristDragStart(e)
+        try {
+          applyDragPreview(e, 'bubble')
+        } catch {}
+      }}
       style={{ ...(baseStyle || {}), paddingLeft: node.level * 14 + 8 }}
       onDoubleClick={() => node.toggle()}>
       <span
@@ -100,14 +290,12 @@ function Row({ node, innerRef, attrs }: RowProps) {
       <span
         className="vscode-row__icon"
         aria-hidden
-        draggable={!isDir}
-        onDragStart={startFileDrag}>
+        draggable={isDraggable}>
         {isDir ? (node.isOpen ? '📂' : '📁') : '📄'}
       </span>
       <span
         className="vscode-row__label"
-        draggable={!isDir}
-        onDragStart={startFileDrag}>
+        draggable={isDraggable}>
         {node.data.name}
       </span>
     </div>
@@ -273,9 +461,9 @@ const FileTree = memo(function FileTree() {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round">
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
             <rect
               x="3"
               y="3"
@@ -316,9 +504,9 @@ const FileTree = memo(function FileTree() {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round">
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
             <rect
               x="3"
               y="3"
