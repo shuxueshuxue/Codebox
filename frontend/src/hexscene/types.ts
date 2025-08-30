@@ -11,5 +11,6 @@ export type PrismItem = {
   functionName?: string
   description?: string
   fileName?: string
+  files?: string[]
   isActivated?: boolean
 }

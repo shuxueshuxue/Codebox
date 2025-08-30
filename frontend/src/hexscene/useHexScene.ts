@@ -14,9 +14,10 @@ type Props = {
   height?: number
   onRequestFeature?: (hexKey: string, defaults?: { name?: string; desc?: string }) => void
   onActivatedPrismClick?: (item: PrismItem, event: MouseEvent) => void
+  onAssignAgentToTask?: (hexKey: string, agentId: string) => void
 }
 
-export function useHexScene({ width, height, onRequestFeature, onActivatedPrismClick }: Props) {
+export function useHexScene({ width, height, onRequestFeature, onActivatedPrismClick, onAssignAgentToTask }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export function useHexScene({ width, height, onRequestFeature, onActivatedPrismC
         }
       },
       onPrismRemove: (item) => tree.disposeTreeForKey(item.key),
+      onAssignAgentToTask,
     })
 
     let raf = 0

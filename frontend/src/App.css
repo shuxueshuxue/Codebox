@@ -20,6 +20,9 @@
   pointer-events: auto; /* 能与 DOM 交互 */
   z-index: 10; /* 覆盖在 three canvas 之上 */
 }
+.sidebar.collapsed {
+  width: 36px;
+}
 
 .sidebar-title {
   font-size: 12px;
@@ -27,6 +30,15 @@
   color: #6b6b6b;
   padding: 10px 12px;
   border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar.collapsed .sidebar-title-text {
+  display: none;
+}
+.sidebar.collapsed .tree-container {
+  display: none;
 }
 
 .tree-container {
@@ -132,6 +144,21 @@
 .icon-btn svg {
   width: 16px;
   height: 16px;
+}
+.collapse-btn {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dcdcdc;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #333333;
+  cursor: pointer;
+}
+.collapse-btn:hover {
+  background: #eeeeee;
 }
 
 /* 右键菜单（浅色） */
@@ -253,4 +280,135 @@
   margin-top: 6px;
   font-size: 12px;
   color: #d93025;
+}
+
+/* 右侧 Agent 面板容器 */
+.rightbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  background-color: #f3f3f3;
+  color: #333333;
+  border-left: 1px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  z-index: 10;
+}
+.rightbar.collapsed {
+  width: 36px;
+}
+.rightbar.collapsed .agent-panel {
+  display: none;
+}
+.rightbar .bar-toggle {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+}
+
+/* Agent Panel 内部结构（VSCode 扁平风格） */
+.agent-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.agent-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 4px 8px;
+  border-bottom: 1px solid #e5e5e5;
+  background: #f7f7f7;
+}
+.agent-toolbar__title {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #6b6b6b;
+}
+.agent-groups {
+  flex: 1;
+  overflow: auto;
+  background: #ffffff;
+}
+.agent-group__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-top: 1px solid #f2f2f2;
+  border-bottom: 1px solid #f7f7f7;
+  background: #fafafa;
+  color: #333333;
+  font-size: 12px;
+  user-select: none;
+  cursor: pointer;
+}
+.agent-group__caret {
+  width: 12px;
+  text-align: center;
+  color: #6b6b6b;
+}
+.agent-group__label {
+  flex: 1;
+}
+.agent-group__count {
+  font-size: 11px;
+  color: #6b6b6b;
+}
+.agent-list {
+  padding: 6px 0;
+}
+.agent-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #333333;
+  user-select: none;
+  cursor: grab;
+}
+.agent-item:active {
+  cursor: grabbing;
+}
+.agent-item:hover {
+  background: #f5f5f5;
+}
+.agent-item__avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: #d6ebff;
+  color: #0a4a8a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 12px;
+}
+.agent-item__main {
+  min-width: 0;
+}
+.agent-item__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agent-item__desc {
+  color: #6b6b6b;
+  font-size: 11px;
+}
+
+/* 已分配 Agent 的禁用态 */
+.agent-item.assigned {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.agent-item.assigned:hover {
+  background: #f7f7f7;
 }

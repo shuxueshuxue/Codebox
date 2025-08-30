@@ -7,6 +7,7 @@ type Props = {
   height?: number
   onRequestFeature?: (hexKey: string, defaults?: { name?: string; desc?: string }) => void
   onActivatedPrismClick?: (item: PrismItem, event: MouseEvent) => void
+  onAssignAgentToTask?: (hexKey: string, agentId: string) => void
 }
 
 export default function HexScene(props: Props) {

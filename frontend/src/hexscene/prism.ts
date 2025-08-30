@@ -158,7 +158,7 @@ export function buildPrismObject(layout: Layout, hex: Hex): PrismItem {
   group.add(mesh)
   group.add(sprite)
   const key = hexKey(hex)
-  return { hex, key, group, mesh, sprite, isActivated: false }
+  return { hex, key, group, mesh, sprite, isActivated: false, files: [] }
 }
 
 export function activatePrism(item: PrismItem, functionName: string, description?: string | null) {

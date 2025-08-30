@@ -16,8 +16,10 @@ export function attachInteractions(opts: {
   onRequestFeature?: (hexKey: string, defaults?: { name?: string; desc?: string }) => void
   onActivatedPrismClick?: (item: PrismItem, event: MouseEvent) => void
   onPrismRemove?: (item: PrismItem) => void
+  onAssignAgentToTask?: (hexKey: string, agentId: string) => void
 }) {
-  const { renderer, camera, layout, fillGroup, prismGroup, defaultFillMat, hoverFillMat, placed, onRequestFeature, onActivatedPrismClick, onPrismRemove } = opts
+  const { renderer, camera, layout, fillGroup, prismGroup, defaultFillMat, hoverFillMat, placed, onRequestFeature, onActivatedPrismClick, onPrismRemove, onAssignAgentToTask } =
+    opts
   const rc = new THREE.Raycaster()
   const mouse = new THREE.Vector2()
   let highlighted: THREE.Mesh | null = null
@@ -104,20 +106,53 @@ export function attachInteractions(opts: {
   const onContextMenu = (e: MouseEvent) => e.preventDefault()
   const onDragOver = (e: DragEvent) => {
     e.preventDefault()
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    if (!e.dataTransfer) return
+    const types = Array.from(e.dataTransfer.types || [])
+    // 支持两类：文件（text/plain）与 agent（application/x-agent）
+    if (types.includes('application/x-agent')) {
+      e.dataTransfer.dropEffect = 'move'
+    } else {
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }
+  const onDragEnter = (e: DragEvent) => {
+    e.preventDefault()
+    if (!e.dataTransfer) return
+    const types = Array.from(e.dataTransfer.types || [])
+    if (types.includes('application/x-agent')) {
+      e.dataTransfer.dropEffect = 'move'
+    } else {
+      e.dataTransfer.dropEffect = 'copy'
+    }
   }
   const onDrop = (e: DragEvent) => {
     e.preventDefault()
+    const agentPayload = e.dataTransfer?.getData('application/x-agent')
     const name = e.dataTransfer?.getData('text/plain')?.trim()
-    if (!name) return
     const hex = hexAtClientXY(renderer, camera, layout, e.clientX, e.clientY)
     if (!hex) return
     const item = placed.get(hexKey(hex))
     if (!item) return
-    item.fileName = name
-    if (!item.functionName) {
-      updateLabelSprite(item.sprite, name)
-      item.label = name
+    // 若是 Agent 拖入，则仅当该棱柱已命名（有任务名）才接受
+    if (agentPayload) {
+      try {
+        const parsed = JSON.parse(agentPayload) as { id: string } | null
+        const agentId = parsed?.id
+        if (agentId && item.functionName && onAssignAgentToTask) {
+          onAssignAgentToTask(item.key, agentId)
+        }
+      } catch {}
+      return
+    }
+    // 否则按文件拖入逻辑
+    if (name) {
+      item.fileName = name
+      if (!Array.isArray(item.files)) item.files = []
+      if (!item.files.includes(name)) item.files.push(name)
+      if (!item.functionName) {
+        updateLabelSprite(item.sprite, name)
+        item.label = name
+      }
     }
   }
 
@@ -128,6 +163,7 @@ export function attachInteractions(opts: {
   el.addEventListener('dblclick', onDblClick)
   el.addEventListener('contextmenu', onContextMenu)
   el.addEventListener('dragover', onDragOver)
+  el.addEventListener('dragenter', onDragEnter)
   el.addEventListener('drop', onDrop)
   window.addEventListener('feature:confirm' as any, onFeatureConfirm as any)
 
@@ -138,6 +174,7 @@ export function attachInteractions(opts: {
     el.removeEventListener('dblclick', onDblClick)
     el.removeEventListener('contextmenu', onContextMenu)
     el.removeEventListener('dragover', onDragOver)
+    el.removeEventListener('dragenter', onDragEnter)
     el.removeEventListener('drop', onDrop)
     window.removeEventListener('feature:confirm' as any, onFeatureConfirm as any)
   }
