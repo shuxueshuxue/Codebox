@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import type { PrismItem } from '../hexscene/types'
 import type { Agent } from '../types/agent'
+import SessionRunner from './SessionRunner'
 
 interface Props {
   prismItem: PrismItem | null
@@ -93,7 +94,8 @@ export default function CircularDependencyGraph({ prismItem, position, onClose, 
     // @@@ node-positioning - Calculate positions in circle
     const count = Math.max(0, dependencies.length)
     const angleStep = count > 0 ? (2 * Math.PI) / count : 1
-    const nodes = dependencies.map((dep, i) => {
+    type NodeDatum = { name: string; x: number; y: number; isCenter?: boolean }
+    const nodes: NodeDatum[] = dependencies.map((dep, i) => {
       const angle = i * angleStep - Math.PI / 2
       return {
         name: dep,
@@ -103,7 +105,7 @@ export default function CircularDependencyGraph({ prismItem, position, onClose, 
     })
 
     // Add center node
-    const centerNode = {
+    const centerNode: NodeDatum = {
       name: prismItem.functionName || 'main',
       x: centerX,
       y: centerY,
@@ -130,14 +132,14 @@ export default function CircularDependencyGraph({ prismItem, position, onClose, 
     // Draw connections
     const links = g
       .append('g')
-      .selectAll('line')
+      .selectAll<SVGLineElement, NodeDatum>('line')
       .data(nodes)
       .enter()
       .append('line')
       .attr('x1', centerX)
       .attr('y1', centerY)
-      .attr('x2', (d) => d.x)
-      .attr('y2', (d) => d.y)
+      .attr('x2', (d: NodeDatum) => d.x)
+      .attr('y2', (d: NodeDatum) => d.y)
       .attr('stroke', (d, i) => `url(#gradient-${i})`)
       .attr('stroke-width', 3)
       .attr('stroke-dasharray', '8, 4')
@@ -146,11 +148,11 @@ export default function CircularDependencyGraph({ prismItem, position, onClose, 
     // Add some curved connection lines for visual interest
     const curvedLinks = g
       .append('g')
-      .selectAll('path')
+      .selectAll<SVGPathElement, NodeDatum>('path')
       .data(nodes.filter((_, i) => i % 2 === 0))
       .enter()
       .append('path')
-      .attr('d', (d) => {
+      .attr('d', (d: NodeDatum) => {
         const midX = (centerX + d.x) / 2
         const midY = (centerY + d.y) / 2
         const offset = 30
@@ -163,14 +165,14 @@ export default function CircularDependencyGraph({ prismItem, position, onClose, 
       .style('animation', 'dash 15s linear infinite reverse')
 
     // Draw all nodes
-    const allNodes = [...nodes, centerNode]
+    const allNodes: NodeDatum[] = [...nodes, centerNode]
     const nodeGroups = g
       .append('g')
-      .selectAll('g')
+      .selectAll<SVGGElement, NodeDatum>('g')
       .data(allNodes)
       .enter()
       .append('g')
-      .attr('transform', (d) => `translate(${d.x}, ${d.y})`)
+      .attr('transform', (d: NodeDatum) => `translate(${d.x}, ${d.y})`)
       .style('cursor', 'pointer')
 
     // Node backgrounds
@@ -181,10 +183,10 @@ export default function CircularDependencyGraph({ prismItem, position, onClose, 
       .attr('width', 110)
       .attr('height', 56)
       .attr('rx', 10)
-      .attr('fill', (d) => (d.isCenter ? 'rgba(100, 200, 200, 0.9)' : 'rgba(70, 170, 170, 0.5)'))
-      .attr('stroke', (d) => (d.isCenter ? 'rgba(150, 250, 250, 0.9)' : 'rgba(100, 200, 200, 0.7)'))
-      .attr('stroke-width', (d) => (d.isCenter ? 3 : 2))
-      .attr('filter', (d) => (d.isCenter ? 'drop-shadow(0 0 15px rgba(100, 200, 200, 0.6))' : 'none'))
+      .attr('fill', (d: NodeDatum) => (d.isCenter ? 'rgba(100, 200, 200, 0.9)' : 'rgba(70, 170, 170, 0.5)'))
+      .attr('stroke', (d: NodeDatum) => (d.isCenter ? 'rgba(150, 250, 250, 0.9)' : 'rgba(100, 200, 200, 0.7)'))
+      .attr('stroke-width', (d: NodeDatum) => (d.isCenter ? 3 : 2))
+      .attr('filter', (d: NodeDatum) => (d.isCenter ? 'drop-shadow(0 0 15px rgba(100, 200, 200, 0.6))' : 'none'))
 
     // File icons
     nodeGroups.append('text').attr('text-anchor', 'middle').attr('y', -5).attr('font-size', '24px').text('📄')
@@ -196,25 +198,19 @@ export default function CircularDependencyGraph({ prismItem, position, onClose, 
       .attr('y', 14)
       .attr('fill', 'white')
       .attr('font-size', '12px')
-      .attr('font-weight', (d) => (d.isCenter ? 'bold' : 'normal'))
+      .attr('font-weight', (d: NodeDatum) => (d.isCenter ? 'bold' : 'normal'))
       .attr('font-family', 'monospace')
       .text((d) => d.name)
 
     // @@@ hover-effects - Add interactivity
     nodeGroups
-      .on('mouseenter', function () {
-        d3.select(this)
-          .select('rect')
-          .transition()
-          .duration(200)
-          .attr('fill', (d) => (d.isCenter ? 'rgba(100, 200, 200, 1)' : 'rgba(50, 150, 150, 0.6)'))
+      .on('mouseenter', function (_evt, d: NodeDatum) {
+        const fill = d.isCenter ? 'rgba(100, 200, 200, 1)' : 'rgba(50, 150, 150, 0.6)'
+        d3.select<SVGGElement, NodeDatum>(this).select<SVGRectElement>('rect').transition().duration(200).attr('fill', fill)
       })
-      .on('mouseleave', function () {
-        d3.select(this)
-          .select('rect')
-          .transition()
-          .duration(200)
-          .attr('fill', (d) => (d.isCenter ? 'rgba(100, 200, 200, 0.8)' : 'rgba(50, 150, 150, 0.4)'))
+      .on('mouseleave', function (_evt, d: NodeDatum) {
+        const fill = d.isCenter ? 'rgba(100, 200, 200, 0.8)' : 'rgba(50, 150, 150, 0.4)'
+        d3.select<SVGGElement, NodeDatum>(this).select<SVGRectElement>('rect').transition().duration(200).attr('fill', fill)
       })
 
     // Entrance animation
@@ -387,6 +383,22 @@ export default function CircularDependencyGraph({ prismItem, position, onClose, 
             </div>
           </div>
         ) : null}
+        <div
+          style={{
+            position: 'absolute',
+            right: -110,
+            top: assignedAgents && assignedAgents.length > 0 ? 340 : 100,
+            width: 260,
+            background: 'rgba(255,255,255,0.96)',
+            border: '1px solid #e5e5e5',
+            borderRadius: 8,
+            boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
+            padding: '6px 6px 8px 6px',
+            color: '#333',
+            pointerEvents: 'auto',
+          }}>
+          <SessionRunner />
+        </div>
       </div>
     </>
   )

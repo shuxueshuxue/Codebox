@@ -1,10 +1,12 @@
 import { memo, useMemo, useLayoutEffect, useRef, useState, useCallback } from 'react'
 import { Tree } from 'react-arborist'
-import data from '../assets/tree.json'
+import { useEffect } from 'react'
+import { listChildren } from '../lib/api'
 
 type NodeData = {
   id: string
   name: string
+  isDir?: boolean
   children?: NodeData[]
 }
 
@@ -12,10 +14,12 @@ type RowProps = {
   node: any
   innerRef: (el: HTMLDivElement | null) => void
   attrs: React.HTMLAttributes<any>
+  onToggleDir: (node: any) => Promise<void>
+  loading?: boolean
 }
 
-function Row({ node, innerRef, attrs }: RowProps) {
-  const isDir = !!node.data.children && node.data.children.length > 0
+function Row({ node, innerRef, attrs, onToggleDir }: RowProps) {
+  const isDir = !!node.data.isDir
   const { style: baseStyle, onDragStart: arboristDragStart, draggable: arboristDraggable, ...rest } = attrs as any
   const isDraggable = !isDir
   const overlayRef = useRef<null | { el: HTMLDivElement; cleanup: () => void }>(null)
@@ -277,12 +281,18 @@ function Row({ node, innerRef, attrs }: RowProps) {
         } catch {}
       }}
       style={{ ...(baseStyle || {}), paddingLeft: node.level * 14 + 8 }}
-      onDoubleClick={() => node.toggle()}>
+      onDoubleClick={async () => {
+        if (isDir) {
+          await onToggleDir(node)
+        } else {
+          node.toggle()
+        }
+      }}>
       <span
         className="vscode-row__caret"
-        onClick={(e) => {
+        onClick={async (e) => {
           e.stopPropagation()
-          if (isDir) node.toggle()
+          if (isDir) await onToggleDir(node)
         }}
         aria-hidden>
         {isDir ? (node.isOpen ? '▾' : '▸') : ''}
@@ -303,9 +313,27 @@ function Row({ node, innerRef, attrs }: RowProps) {
 }
 
 const FileTree = memo(function FileTree() {
-  const initial = useMemo<NodeData[]>(() => data as unknown as NodeData[], [])
-  const [treeData, setTreeData] = useState<NodeData[]>(initial)
+  const [treeData, setTreeData] = useState<NodeData[]>([])
   const [search, setSearch] = useState('')
+  const projectId = 1 // TODO: 可接入项目选择器
+  const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({})
+
+  // 首次加载：直接加载顶层目录（懒加载，服务端仅刷新当前层级）
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const rows = await listChildren(projectId, null, false, 500, 0, true)
+        const roots: NodeData[] = (rows as any[]).map((r: any) => ({
+          id: r.path || r.id || r.name,
+          name: r.path ? r.path.split('/').pop() || r.path : r.name,
+          isDir: r.is_dir === 1,
+        }))
+        setTreeData(roots)
+      } catch (e) {
+        console.error(e)
+      }
+    })()
+  }, [projectId])
 
   const [menu, setMenu] = useState<{ x: number; y: number; targetId: string } | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -373,6 +401,18 @@ const FileTree = memo(function FileTree() {
       }
     }
     return null
+  }
+
+  function attachChildren(list: NodeData[], parentId: string, kids: NodeData[]): NodeData[] {
+    return list.map((n) => {
+      if (n.id === parentId) {
+        return { ...n, isDir: true, children: kids }
+      }
+      if (n.children && n.children.length) {
+        return { ...n, children: attachChildren(n.children, parentId, kids) }
+      }
+      return n
+    })
   }
 
   // 搜索过滤：保留命中的分支
@@ -452,6 +492,25 @@ const FileTree = memo(function FileTree() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="spacer" />
+        <button
+          className="icon-btn"
+          aria-label="刷新"
+          title="刷新（重新扫描）"
+          onClick={async () => {
+            try {
+              const rows = await listChildren(projectId, null, false, 500, 0, true)
+              const roots: NodeData[] = (rows as any[]).map((r: any) => ({
+                id: r.path || r.id || r.name,
+                name: r.path ? r.path.split('/').pop() || r.path : r.name,
+                isDir: r.is_dir === 1,
+              }))
+              setTreeData(roots)
+            } catch (e) {
+              console.error(e)
+            }
+          }}>
+          ⟳
+        </button>
         <button
           className="icon-btn"
           aria-label="全部展开"
@@ -553,11 +612,59 @@ const FileTree = memo(function FileTree() {
             overscanCount={8}
             // Tree v5 的 selection 是 string（单选）。此处用 follow focus + 多选快捷键。
             selectionFollowsFocus
-            renderRow={(props) => (
-              <div onContextMenu={(e) => onContextMenuRow(e, (props as any).node.id)}>
-                <Row {...(props as any)} />
-              </div>
-            )}
+            renderRow={(props) => {
+              const onToggleDir = async (node: any) => {
+                if (!node.data.isDir) return
+                // 如果已加载则只切换
+                if (node.data.children && node.data.children.length) {
+                  node.toggle()
+                  return
+                }
+                // 先占位“加载中...”，再展开，再异步拉取
+                setTreeData((prev) => attachChildren(prev, node.id, [{ id: node.id + '::loading', name: '加载中...', isDir: false }]))
+                setLoadingIds((prev) => ({ ...prev, [node.id]: true }))
+                // 等待一次渲染帧，确保占位子节点已插入到树中后再展开
+                try {
+                  await new Promise<void>((resolve) => {
+                    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => resolve())
+                    else setTimeout(resolve, 0)
+                  })
+                  if (typeof (node as any).open === 'function') (node as any).open()
+                  else if (typeof (node as any).toggle === 'function') (node as any).toggle()
+                } catch {}
+                try {
+                  const rows = await listChildren(projectId, node.id, false, 500, 0, true)
+                  const kids: NodeData[] = (rows as any[]).map((r: any) => ({
+                    id: r.path || r.id || r.name,
+                    name: r.path ? r.path.split('/').pop() || r.path : r.name,
+                    isDir: r.is_dir === 1,
+                    children: r.is_dir === 1 ? [] : undefined,
+                  }))
+                  setTreeData((prev) => attachChildren(prev, node.id, kids))
+                  setLoadingIds((prev) => {
+                    const n = { ...prev }
+                    delete n[node.id]
+                    return n
+                  })
+                } catch (e) {
+                  console.error(e)
+                  setLoadingIds((prev) => {
+                    const n = { ...prev }
+                    delete n[node.id]
+                    return n
+                  })
+                }
+              }
+              return (
+                <div onContextMenu={(e) => onContextMenuRow(e, (props as any).node.id)}>
+                  <Row
+                    {...(props as any)}
+                    onToggleDir={onToggleDir}
+                    loading={!!loadingIds[(props as any).node.id]}
+                  />
+                </div>
+              )
+            }}
             onMove={(args: any) => {
               const parentId: string | null = args.parentId ?? null
               const index: number = args.index ?? 0

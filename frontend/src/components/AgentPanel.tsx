@@ -1,6 +1,7 @@
-import { useMemo, useState, useRef } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import type { Agent, AgentRole } from '../types/agent'
 import { roleOrder } from '../types/agent'
+import { getRunningSessions } from '../lib/api'
 
 type GroupKey = AgentRole
 
@@ -25,6 +26,23 @@ export default function AgentPanel(props: Props) {
   })
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState<{ name: string; role: GroupKey; desc: string }>(() => ({ name: '', role: '规划', desc: '' }))
+  const [activeTab, setActiveTab] = useState<'agents' | 'running'>('agents')
+
+  const [running, setRunning] = useState<Array<{ exec_id: string; status: string }>>([])
+
+  useEffect(() => {
+    let stop = false
+    const t = setInterval(async () => {
+      try {
+        const r = await getRunningSessions()
+        if (!stop) setRunning(r)
+      } catch {}
+    }, 2000)
+    return () => {
+      stop = true
+      clearInterval(t)
+    }
+  }, [])
 
   const groups = useMemo(() => {
     const map: Record<GroupKey, Agent[]> = { 规划: [], 前端: [], 后端: [], 测试: [], 数据: [], 运维: [] }
@@ -305,70 +323,124 @@ export default function AgentPanel(props: Props) {
             </svg>
           )}
         </button>
+        {activeTab === 'agents' && (
+          <button
+            className="icon-btn"
+            title="新建 Agent"
+            onClick={() => setCreating(true)}>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 6, padding: '6px 8px 0 8px', borderBottom: '1px solid #eee' }}>
         <button
-          className="icon-btn"
-          title="新建 Agent"
-          onClick={() => setCreating(true)}>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+          className="vscode-btn"
+          style={{
+            background: activeTab === 'agents' ? '#e7eefc' : 'transparent',
+            color: activeTab === 'agents' ? '#1f2328' : '#4b5563',
+            borderColor: activeTab === 'agents' ? '#c7dbff' : 'transparent',
+            padding: '4px 10px',
+          }}
+          onClick={() => setActiveTab('agents')}>
+          Agents
+        </button>
+        <button
+          className="vscode-btn"
+          style={{
+            background: activeTab === 'running' ? '#e7eefc' : 'transparent',
+            color: activeTab === 'running' ? '#1f2328' : '#4b5563',
+            borderColor: activeTab === 'running' ? '#c7dbff' : 'transparent',
+            padding: '4px 10px',
+          }}
+          onClick={() => setActiveTab('running')}>
+          Running
         </button>
       </div>
 
       {!folded && (
         <div className="agent-groups">
-          {roleOrder.map((role) => {
-            const items = groups[role]
-            const isCollapsed = collapsed[role]
-            return (
+          {activeTab === 'running' ? (
+            <div className="agent-group">
               <div
-                key={role}
-                className="agent-group"
-                onDragOver={onDragOver}
-                onDrop={(e) => onDropToRole(e, role)}>
-                <div
-                  className="agent-group__header"
-                  onClick={() => setCollapsed((c) => ({ ...c, [role]: !c[role] }))}>
-                  <span className="agent-group__caret">{isCollapsed ? '▶' : '▼'}</span>
-                  <span className="agent-group__label">{role}</span>
-                  <span className="agent-group__count">{items.length}</span>
-                </div>
-                {!isCollapsed && (
-                  <div className="agent-list">
-                    {items.map((a) => (
-                      <div
-                        key={a.id}
-                        className={['agent-item', assignedSet.has(a.id) ? 'assigned' : ''].filter(Boolean).join(' ')}
-                        draggable={!assignedSet.has(a.id)}
-                        onDragStartCapture={(e) => applyDragPreview(e, a.name, a.role, 'capture')}
-                        onDragStart={(e) => onDragStart(e, a.id, a.name, a.role)}
-                        onDragOver={(e) => {
-                          onDragOver(e)
-                          const dragging = dragId
-                          if (dragging) onReorderWithinRole(dragging, a.id)
-                        }}
-                        title={a.desc || ''}>
-                        <div
-                          className="agent-item__avatar"
-                          aria-hidden>
-                          {a.name.slice(0, 1)}
-                        </div>
-                        <div className="agent-item__main">
-                          <div className="agent-item__name">{a.name}</div>
-                          {a.desc ? <div className="agent-item__desc">{a.desc}</div> : null}
-                          {assignedSet.has(a.id) ? <div className="agent-item__desc">已分配</div> : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                className="agent-group__header"
+                style={{ cursor: 'default' }}>
+                <span className="agent-group__caret" />
+                <span className="agent-group__label">Running</span>
+                <span className="agent-group__count">{running.length}</span>
               </div>
-            )
-          })}
+              <div className="agent-list">
+                {running.map((r) => (
+                  <div
+                    key={r.exec_id}
+                    className="agent-item">
+                    <div className="agent-item__main">
+                      <div className="agent-item__name">{r.exec_id}</div>
+                      <div className="agent-item__desc">{r.status}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              {roleOrder.map((role) => {
+                const items = groups[role]
+                const isCollapsed = collapsed[role]
+                return (
+                  <div
+                    key={role}
+                    className="agent-group"
+                    onDragOver={onDragOver}
+                    onDrop={(e) => onDropToRole(e, role)}>
+                    <div
+                      className="agent-group__header"
+                      onClick={() => setCollapsed((c) => ({ ...c, [role]: !c[role] }))}>
+                      <span className="agent-group__caret">{isCollapsed ? '▶' : '▼'}</span>
+                      <span className="agent-group__label">{role}</span>
+                      <span className="agent-group__count">{items.length}</span>
+                    </div>
+                    {!isCollapsed && (
+                      <div className="agent-list">
+                        {items.map((a) => (
+                          <div
+                            key={a.id}
+                            className={['agent-item', assignedSet.has(a.id) ? 'assigned' : ''].filter(Boolean).join(' ')}
+                            draggable={!assignedSet.has(a.id)}
+                            onDragStartCapture={(e) => applyDragPreview(e, a.name, a.role, 'capture')}
+                            onDragStart={(e) => onDragStart(e, a.id, a.name, a.role)}
+                            onDragOver={(e) => {
+                              onDragOver(e)
+                              const dragging = dragId
+                              if (dragging) onReorderWithinRole(dragging, a.id)
+                            }}
+                            title={a.desc || ''}>
+                            <div
+                              className="agent-item__avatar"
+                              aria-hidden>
+                              {a.name.slice(0, 1)}
+                            </div>
+                            <div className="agent-item__main">
+                              <div className="agent-item__name">{a.name}</div>
+                              {a.desc ? <div className="agent-item__desc">{a.desc}</div> : null}
+                              {assignedSet.has(a.id) ? <div className="agent-item__desc">已分配</div> : null}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </>
+          )}
         </div>
       )}
 
